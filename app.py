@@ -169,92 +169,14 @@ def get_all_staff_api():
 
 @app.route('/api/gen_ai/generate', methods=['POST'])
 def api_generate_ai():
-    """Generate quiz/questions using Google Generative Language API via REST.
-    Accepts JSON: { prompt, num_questions, department, difficulty }
+    """Generate quiz/questions using AI - Currently disabled.
+    To enable: Install google-generativeai and add API key to controller/config.py
     """
-    data = request.get_json() or {}
-    prompt_text = (data.get('prompt') or '').strip()
-    try:
-        num_questions = int(data.get('num_questions', 5))
-    except Exception:
-        num_questions = 5
-    department = data.get('department') or 'General'
-    difficulty = data.get('difficulty') or 'medium'
-
-    if not prompt_text:
-        return jsonify({'success': False, 'message': 'Prompt is required'}), 400
-
-    # Compose instruction to get structured JSON output
-    instruction = (
-        "You are an assistant that creates educational quizzes. Return ONLY valid JSON with the following "
-        "top-level keys: title (string), description (string), questions (array). "
-        "Each question must be an object with keys: question (string), options (array of 4 strings), correctAnswer (integer index 0-3). "
-        f"Create {num_questions} {difficulty} questions appropriate for the {department} department. "
-        "Do not include commentary; return JSON only."
-    )
-    instruction += " Additional instructions: " + prompt_text
-
-    body = {
-        'prompt': {
-            'messages': [
-                {'author': 'user', 'content': {'text': instruction}}
-            ]
-        },
-        'temperature': 0.2,
-        'max_output_tokens': 800
-    }
-
-    # Use the installed google.generativeai client library
-    try:
-        genai.configure(api_key=GENAI_API_KEY)
-        # Pick a model that supports generateContent
-        available = genai.list_models()
-        chosen_model = None
-        for m in available:
-            methods = getattr(m, 'supported_generation_methods', None) or []
-            if 'generateContent' in methods:
-                chosen_model = m.name
-                break
-        if not chosen_model:
-            return jsonify({'success': False, 'message': 'No generative model available for this API key'}), 502
-
-        model = genai.GenerativeModel(chosen_model)
-        # Ask the model to produce the structured JSON
-        resp = model.generate_content(instruction)
-        generated_text = getattr(resp, 'text', '') or ''
-    except Exception as e:
-        return jsonify({'success': False, 'message': 'Error contacting AI service', 'detail': str(e)}), 500
-
-    if not generated_text:
-        return jsonify({'success': False, 'message': 'AI service returned empty response'}), 502
-
-    # Clean common code fences or markdown wrappers from model output
-    def _clean_generated(text: str) -> str:
-        t = text.strip()
-        # Remove ```json or ``` fences
-        if t.startswith('```'):
-            parts = t.splitlines()
-            # drop the first fence line
-            parts = parts[1:]
-            # drop trailing fence if present
-            if parts and parts[-1].strip().endswith('```'):
-                parts = parts[:-1]
-            t = '\n'.join(parts).strip()
-        # If output contains extra prose around a JSON block, try to extract the JSON
-        if not (t.startswith('{') or t.startswith('[')):
-            start = t.find('{')
-            end = t.rfind('}')
-            if start != -1 and end != -1 and end >= start:
-                t = t[start:end+1]
-        return t
-
-    cleaned = _clean_generated(generated_text)
-
-    try:
-        parsed = json.loads(cleaned)
-        return jsonify({'success': True, 'quiz': parsed})
-    except Exception:
-        return jsonify({'success': True, 'raw': generated_text})
+    return jsonify({
+        'success': False, 
+        'message': 'AI feature is currently disabled',
+        'detail': 'To enable AI generation: 1) Install google-generativeai package, 2) Add GENAI_API_KEY to controller/config.py, 3) Uncomment AI code in app.py'
+    }), 503
 
 
 if __name__ == '__main__':
