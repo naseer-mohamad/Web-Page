@@ -15,6 +15,9 @@ ENV/
 *.db
 mydb.db
 
+# Configuration (contains API keys)
+controller/config.py
+
 # IDE
 .vscode/
 .idea/
