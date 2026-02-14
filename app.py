@@ -201,8 +201,8 @@ def api_generate_ai():
         # Configure the API
         genai.configure(api_key=GENAI_API_KEY)
         
-        # Use Gemini model
-        model = genai.GenerativeModel('gemini-pro')
+        # Use Gemini 1.5 Flash model (free tier)
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
         # Generate content
         response = model.generate_content(instruction)
