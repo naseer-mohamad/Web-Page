@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from controller import models
-from controller.config import GENAI_API_KEY
-import google.generativeai as genai
+from controller.config import OPENAI_API_KEY
+from openai import OpenAI
 import json
 
 # expose register/verify helpers
@@ -172,7 +172,7 @@ def get_all_staff_api():
 
 @app.route('/api/gen_ai/generate', methods=['POST'])
 def api_generate_ai():
-    """Generate quiz/questions using Google Generative AI API.
+    """Generate quiz/questions using OpenAI API.
     Accepts JSON: { prompt, num_questions, department, difficulty }
     """
     data = request.get_json() or {}
@@ -198,15 +198,21 @@ def api_generate_ai():
     instruction += "Additional instructions: " + prompt_text
 
     try:
-        # Configure the API
-        genai.configure(api_key=GENAI_API_KEY)
+        # Initialize OpenAI client
+        client = OpenAI(api_key=OPENAI_API_KEY)
         
-        # Use Gemini model
-        model = genai.GenerativeModel('gemini-pro')
+        # Generate content using GPT
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that creates educational quizzes in JSON format."},
+                {"role": "user", "content": instruction}
+            ],
+            temperature=0.7,
+            max_tokens=1500
+        )
         
-        # Generate content
-        response = model.generate_content(instruction)
-        generated_text = response.text if hasattr(response, 'text') else ''
+        generated_text = response.choices[0].message.content if response.choices else ''
         
     except Exception as e:
         return jsonify({'success': False, 'message': 'Error contacting AI service', 'detail': str(e)}), 500
